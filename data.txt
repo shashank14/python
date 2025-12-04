@@ -1,0 +1,27 @@
+{
+  "title": "Gross Investments by Geography 2025-28",
+  "total_investments_eur_bn": 58.0,
+  "data": [
+    {
+      "label": "United Kingdom",
+      "value_percent": 35.0
+    },
+    {
+      "label": "United States",
+      "value_percent": 30.0
+    },
+    {
+      "label": "Iberia",
+      "value_percent": 15.0
+    },
+    {
+      "label": "Brazil",
+      "value_percent": 12.0
+    },
+    {
+      "label": "Other EU & Australia",
+      "value_percent": 8.0
+    }
+  ],
+  "summary": "Approximately 65% of gross investments (~38 Bn EUR) are allocated to the UK and US combined."
+}
