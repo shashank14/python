@@ -1,0 +1,32 @@
+BOX + Database (Left side)
+External systems where raw data comes from.
+
+UCTS Task (Ingestion Layer)
+Pulls data from BOX/DB and brings it into AWS.
+
+Integration / Processing Blocks (Middle)
+These components clean, validate, transform, and route the data.
+
+VPC with Public + Private Subnets (Center)
+
+Public subnet has the Application Load Balancer (ALB).
+
+Private subnets run internal application services such as VCP, CCD, DMP, SAM.
+
+Application Services (Inside Private Subnets)
+These are your microservices or backend components that handle business logic.
+
+Cache Layer (Right side)
+A high-speed in-memory cache for faster performance.
+
+Databricks (Far Right)
+Downstream analytics system that receives processed data.
+
+CI/CD Pipeline (Bottom)
+Automatically builds and deploys your code.
+
+Containerization (Bottom Right)
+
+ECR stores the container (Docker) images.
+
+ECS or similar service runs those containers inside private subnets.
