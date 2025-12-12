@@ -28,5 +28,11 @@ Automatically builds and deploys your code.
 Containerization (Bottom Right)
 
 ECR stores the container (Docker) images.
-
 ECS or similar service runs those containers inside private subnets.
+
+1. Code Pipeline (CI/CD) – Builds the Container
+Code Commit / Source Build Stage Deploy Stage
+Take the source code, Build a Docker image
+Push that image to Amazon ECR
+Deploy the updated container to your application runtime (ECS)
+This is automated deployment.
