@@ -1,62 +1,59 @@
-import re
 import json
-from typing import Dict, Any, List
+import logging
+import boto3
+from botocore.exceptions import ClientError
+from urllib.parse import unquote_plus
 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
-def extract_gross_investments_in_renewables(pdf_path: str) -> Dict[str, Any]:
-    text = get_page_text_containing(pdf_path, "Gross Investments (Eur Bn)")
+s3 = boto3.client("s3")
 
-    # 1️⃣ Total: "Investing Eur 21 Bn"
-    total_match = re.search(
-        r"Investing\s*(?:Eur|EUR|€)\s*~?\s*(\d+(?:[.,]\d+)?)\s*B[nN]",
-        text, re.IGNORECASE)
-    total = float(total_match.group(1).replace(",", ".")) if total_match else None
+def lambda_handler(event, context):
+    logger.info("S3 event received: %s", json.dumps(event))
+    
+    secret_name = "prod"
+    region_name = "eu-north-1"
 
-    labels = [
-        "Offshore Wind",
-        "Onshore Wind",
-        "Solar PV",
-        "Customers & Maintenance",
-        "Storage",
-    ]
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
 
-    data: List[Dict[str, Any]] = []
-
-    # 2️⃣ Extract ALL numbers that look like Bn values (ignoring 21 total)
-    raw_nums = re.findall(
-        r"~?\s*(\d+(?:[.,]\d+)?)\s*(?:Eur|EUR|€)?\s*B[nN]",
-        text, re.IGNORECASE)
-
-    # Convert & drop the total (21)
-    nums = [float(n.replace(",", ".")) for n in raw_nums if float(n.replace(",", ".")) != total]
-
-    # Defensive check
-    while len(nums) < len(labels):
-        nums.append(None)
-
-    # 3️⃣ Assign numbers in correct visual order
-    for label, num in zip(labels, nums):
-        if num is not None:
-            data.append({"label": label, "value_eur_bn": num})
-
-    # 4️⃣ Summary
-    if total and data:
-        top_item = max(data, key=lambda x: x["value_eur_bn"])
-        summary = (
-            f"Gross investments in Renewable Power & Customers total ~{total:.0f} Bn EUR, "
-            f"with {top_item['label']} being the largest segment."
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
         )
-    else:
-        summary = "Gross investments in Renewable Power & Customers could not be fully determined."
+    except ClientError as e:
+        # For a list of exceptions thrown, see
+        # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+        raise e
+
+    secret = get_secret_value_response['SecretString']
+    print(">>>>",secret)
+
+    # 1. Extract bucket & key
+    record = event["Records"][0]
+    bucket = record["s3"]["bucket"]["name"]
+    key = unquote_plus(record["s3"]["object"]["key"])
+
+    logger.info("Bucket: %s", bucket)
+    logger.info("Key: %s", key)
+
+    # 2. Read file from S3
+    response = s3.get_object(Bucket=bucket, Key=key)
+    file_content = response["Body"].read().decode("utf-8")
+
+    # 3. Parse JSON
+    data = json.loads(file_content)
+
+    logger.info("JSON content: %s", json.dumps(data))
 
     return {
-        "title": "Gross Investments in Renewable Power & Customers 2025-28",
-        "total_investments_eur_bn": total,
-        "data": data,
-        "summary": summary,
+        "statusCode": 200,
+        "body": "JSON processed successfully"
     }
 
-if __name__ == "__main__":
-    pdf_path = "CMD25-strategic-plan-update.pdf"
-    info = extract_gross_investments_in_renewables(pdf_path)
-    print(json.dumps(info, indent=2))
+
